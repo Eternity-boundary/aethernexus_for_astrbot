@@ -5,3 +5,7 @@ version: v1.0.0
 author: EternityBoundary
 repo: https://github.com/Eternity-boundary/aethernexus_for_astrbot
 astrbot_version: ">=4.29.4,<5"
+tags:
+  - Platform
+  - OpenAI
+  - 用量查询
