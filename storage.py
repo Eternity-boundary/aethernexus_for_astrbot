@@ -1,12 +1,12 @@
 """Local settings and revisioned prompts ported from PromptStore/BudgetService.
 
- Copyright (c) 2026 Skylight Software Organization.
- Created by EternityBoundary
- All rights reserved.
- SPDX-License-Identifier: GPL-3.0-only
+Copyright (c) 2026 Skylight Software Organization.
+Created by EternityBoundary
+All rights reserved.
+SPDX-License-Identifier: GPL-3.0-only
 
- File: storage.py
- Project: AetherNexus for AstrBot
+File: storage.py
+Project: AetherNexus for AstrBot
 """
 
 import json
@@ -70,10 +70,10 @@ class LocalStore:
             )
 
     def settings(self, value: dict | None = None) -> dict:
-        """Read or replace non-secret appearance and budget preferences.
+        """Read or merge non-secret workspace preferences.
 
         Args:
-            value: Optional settings with theme and monthly_usd_cents.
+            value: Optional appearance, budget and usage command preferences.
 
         Returns:
             Current persisted settings.
@@ -82,9 +82,24 @@ class LocalStore:
             ValueError: Settings are invalid.
         """
         with sqlite3.connect(self.path) as db:
+            row = db.execute("SELECT value FROM settings WHERE id = 1").fetchone()
+            current = {
+                "theme": "system",
+                "monthly_usd_cents": None,
+                "usage_command_enabled": False,
+            }
+            if row:
+                current.update(json.loads(row[0]))
             if value is not None:
-                theme = value.get("theme", "system")
-                budget = value.get("monthly_usd_cents")
+                if not isinstance(value, dict):
+                    raise ValueError("Settings must be a JSON object.")
+                theme = value.get("theme", current["theme"])
+                budget = value.get("monthly_usd_cents", current["monthly_usd_cents"])
+                command_enabled = value.get(
+                    "usage_command_enabled", current["usage_command_enabled"]
+                )
+                if type(command_enabled) is not bool:
+                    raise ValueError("usage_command_enabled must be a boolean.")
                 if theme not in ("system", "light", "dark"):
                     raise ValueError("Invalid theme.")
                 if budget is not None and (
@@ -93,17 +108,16 @@ class LocalStore:
                     raise ValueError(
                         "Budget must be between 1 and 100000000000 USD cents."
                     )
-                value = {"theme": theme, "monthly_usd_cents": budget}
+                current = {
+                    "theme": theme,
+                    "monthly_usd_cents": budget,
+                    "usage_command_enabled": command_enabled,
+                }
                 db.execute(
                     "INSERT OR REPLACE INTO settings VALUES (1, ?)",
-                    (json.dumps(value),),
+                    (json.dumps(current),),
                 )
-            row = db.execute("SELECT value FROM settings WHERE id = 1").fetchone()
-        return (
-            json.loads(row[0])
-            if row
-            else {"theme": "system", "monthly_usd_cents": None}
-        )
+        return current
 
     def prompts(self, draft: dict | None = None, remove: str = "") -> list[dict]:
         """Read, append, or delete prompt revisions atomically.

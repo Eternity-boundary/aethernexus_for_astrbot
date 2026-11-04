@@ -105,6 +105,7 @@ function navigate(id) {
   }
   current = cache.get(id);
   document.getElementById("content").replaceChildren(current.root);
+  current.enter?.();
   document
     .querySelectorAll("[data-nav]")
     .forEach((el) => el.classList.toggle("active", el.dataset.nav === id));

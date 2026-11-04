@@ -30,10 +30,17 @@ const path = require("node:path");
   const output = path.resolve("test-results");
   await fs.mkdir(output, { recursive: true });
   try {
+    await page.request.post("http://127.0.0.1:8765/api/credentials", {
+      data: { kind: "admin", mode: "clear" },
+    });
     await page.request.post("http://127.0.0.1:8765/api/action", {
       data: {
         action: "settings.save",
-        body: { theme: "light", monthly_usd_cents: null },
+        body: {
+          theme: "light",
+          monthly_usd_cents: null,
+          usage_command_enabled: false,
+        },
       },
     });
     await page.goto("http://127.0.0.1:8765");
@@ -72,6 +79,66 @@ const path = require("node:path");
       await frame.locator(`[data-nav="${id}"]`).click();
       assert.ok(await frame.locator("#content h1").textContent(), id);
     }
+    assert.equal(
+      await frame.locator("#usage-command-enabled").isChecked(),
+      false,
+    );
+    await frame.locator("#usage-command-enabled").check();
+    await frame.locator("#usage-command-save").click();
+    await frame.locator("#usage-command-save:not([disabled])").waitFor();
+    const beforeMissingKey = await (
+      await page.request.post("http://127.0.0.1:8765/api/action", {
+        data: { action: "dashboard.latest" },
+      })
+    ).json();
+    const missingKey = await (
+      await page.request.post("http://127.0.0.1:8765/offline/usage")
+    ).json();
+    assert.ok(missingKey.messages.join("\n").includes("Admin Key"));
+    assert.deepEqual(missingKey.report, beforeMissingKey.report);
+    await page.request.post("http://127.0.0.1:8765/api/credentials", {
+      data: { kind: "admin", mode: "set", value: "synthetic-browser-admin" },
+    });
+    const firstCommand = await (
+      await page.request.post("http://127.0.0.1:8765/offline/usage")
+    ).json();
+    assert.ok(firstCommand.messages.join("\n").includes("本月成本"));
+    assert.ok(firstCommand.messages.join("\n").includes("Offline workspace"));
+    await page.screenshot({
+      path: path.join(output, "usage-command-settings.png"),
+      fullPage: true,
+    });
+    await frame.locator('[data-nav="dashboard"]').click();
+    await frame
+      .locator("#scope-note")
+      .filter({ hasText: firstCommand.report.refreshed_at })
+      .waitFor();
+    const secondCommand = await (
+      await page.request.post("http://127.0.0.1:8765/offline/usage")
+    ).json();
+    await frame
+      .locator("#scope-note")
+      .filter({ hasText: secondCommand.report.refreshed_at })
+      .waitFor({ timeout: 8000 });
+    const originalStart = await frame.locator("#start").inputValue();
+    await frame.locator("#start").fill("2026-10-01");
+    await frame.locator("#start").dispatchEvent("change");
+    await page.request.post("http://127.0.0.1:8765/offline/usage");
+    await frame
+      .locator("#scope-note")
+      .filter({ hasText: "目前篩選範圍不同" })
+      .waitFor({ timeout: 8000 });
+    assert.equal(await frame.locator("#start").inputValue(), "2026-10-01");
+    await frame.locator("#start").fill(originalStart);
+    await frame.locator("#start").dispatchEvent("change");
+    await frame.locator('[data-nav="settings"]').click();
+    await frame.locator("#usage-command-enabled").uncheck();
+    await frame.locator("#usage-command-save").click();
+    await frame.locator("#usage-command-save:not([disabled])").waitFor();
+    const disabledCommand = await (
+      await page.request.post("http://127.0.0.1:8765/offline/usage")
+    ).json();
+    assert.ok(disabledCommand.messages.join("\n").includes("尚未開啟"));
     const migrationPages = [
       [
         "prompts",
@@ -323,7 +390,7 @@ const path = require("node:path");
       .click();
     assert.deepEqual(errors, [], "Browser must not produce page errors");
     console.log(
-      "Passed: 17 workspace routes, 9 local migration guides with no API calls or draft changes, audio deprecation notices, light/dark/mobile dialogs, real sandbox/bridge, streaming/stop, revisions, workflow, images, upload and mutation confirmation.",
+      "Passed: usage command switch/missing key/fresh report/live Dashboard sync/filter preservation, 17 workspace routes, 9 local migration guides, audio notices, light/dark/mobile dialogs, real bridge, streaming, revisions, workflow, images and uploads.",
     );
   } finally {
     await browser.close();

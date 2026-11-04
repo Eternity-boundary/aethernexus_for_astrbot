@@ -1,12 +1,12 @@
 """AetherNexus workspace operations independent of AstrBot request contexts.
 
- Copyright (c) 2026 Skylight Software Organization.
- Created by EternityBoundary
- All rights reserved.
- SPDX-License-Identifier: GPL-3.0-only
+Copyright (c) 2026 Skylight Software Organization.
+Created by EternityBoundary
+All rights reserved.
+SPDX-License-Identifier: GPL-3.0-only
 
- File: service.py
- Project: AetherNexus for AstrBot
+File: service.py
+Project: AetherNexus for AstrBot
 """
 
 import asyncio
@@ -50,6 +50,7 @@ class WorkspaceService:
             store: Non-secret local document database.
         """
         self.client, self.store = client, store
+        self.latest_command_dashboard = None
 
     async def usage(self, payload: dict) -> dict:
         """Fetch complete daily usage pages without inventing missing metrics.
@@ -257,13 +258,13 @@ class WorkspaceService:
         }
 
     async def dashboard(self, payload: dict) -> dict:
-        """Fetch independent token and month-to-date cost reports.
+        """Refresh token, month-to-date cost, project and local preference data.
 
         Args:
             payload: Date range and optional admin project filter.
 
         Returns:
-            Reports with separate error states and a local reference budget.
+            Fresh reports and projects with independent error states.
         """
         now = datetime.now(timezone.utc)
         month = now.replace(day=1).strftime("%Y-%m-%d")
@@ -290,6 +291,60 @@ class WorkspaceService:
                 if isinstance(report, Exception)
                 else report
             )
+        projects, after, cursors = [], "", set()
+        try:
+            for _ in range(1000):
+                response = await self.client.request(
+                    "GET",
+                    "/organization/projects",
+                    params={
+                        "include_archived": "true",
+                        "limit": 100,
+                        **({"after": after} if after else {}),
+                    },
+                    admin=True,
+                )
+                records = response.get("data")
+                if not isinstance(records, list):
+                    raise ApiError("Project response is missing data.")
+                for record in records:
+                    if (
+                        not isinstance(record, dict)
+                        or not isinstance(record.get("id"), str)
+                        or not re.fullmatch(r"[A-Za-z0-9_-]{1,200}", record["id"])
+                        or not isinstance(record.get("name", ""), str)
+                    ):
+                        raise ApiError("Invalid project metadata.")
+                    projects.append(
+                        {key: record.get(key, "") for key in ("id", "name", "status")}
+                    )
+                if not response.get("has_more"):
+                    result["projects"] = {"data": projects}
+                    break
+                after = response.get("last_id") or (
+                    records[-1]["id"] if records else ""
+                )
+                if (
+                    not isinstance(after, str)
+                    or not re.fullmatch(r"[A-Za-z0-9_-]{1,200}", after)
+                    or after in cursors
+                ):
+                    raise ApiError("Invalid or repeated project pagination cursor.")
+                cursors.add(after)
+            else:
+                raise ApiError("Project pagination exceeds 1000 pages.")
+        except Exception as error:
+            result["projects"] = {
+                "error": str(error)
+                if isinstance(error, ApiError)
+                else "Unable to load projects."
+            }
+        result["range"] = {
+            "start": payload.get("start", ""),
+            "end": payload.get("end", ""),
+            "project": payload.get("project", ""),
+        }
+        result["refreshed_at"] = datetime.now(timezone.utc).isoformat()
         return result
 
     async def action(self, payload: dict) -> dict:
@@ -318,6 +373,8 @@ class WorkspaceService:
             return await asyncio.to_thread(self.store.settings)
         if action == "settings.save":
             return await asyncio.to_thread(self.store.settings, payload.get("body", {}))
+        if action == "dashboard.latest":
+            return {"report": self.latest_command_dashboard}
         if action == "prompts.list":
             return {"revisions": await asyncio.to_thread(self.store.prompts)}
         if action == "prompts.save":
@@ -601,6 +658,126 @@ class WorkspaceService:
             files={"file": (safe_name, content, mime)},
             project=params.get("project", ""),
         )
+
+
+def dashboard_messages(report: dict) -> list[str]:
+    """Format every Dashboard section as bounded message-pipeline text chunks.
+
+    Args:
+        report: A freshly refreshed Dashboard report, including partial errors.
+
+    Returns:
+        Messages of at most 3000 characters containing totals, trends and projects.
+    """
+    scope = report["range"]
+    lines = [
+        "AetherNexus 用量報告",
+        f"更新時間：{report['refreshed_at']}（UTC）",
+        "範圍：所有專案",
+        f"用量期間：{scope['start']} 至 {scope['end']}（UTC）",
+        "",
+    ]
+    usage, costs = report["usage"], report["costs"]
+    if "error" in usage:
+        lines.append(f"用量載入失敗：{usage['error']}")
+    else:
+        totals = usage["totals"]
+        for key, label in (
+            ("input_tokens", "輸入 Token（含快取）"),
+            ("output_tokens", "輸出 Token"),
+            ("num_model_requests", "請求數"),
+            ("input_cached_tokens", "快取輸入 Token"),
+        ):
+            value = totals.get(key)
+            lines.append(f"{label}：{value:,}" if value is not None else f"{label}：—")
+        combined = (
+            totals["input_tokens"] + totals["output_tokens"]
+            if totals.get("input_tokens") is not None
+            and totals.get("output_tokens") is not None
+            else None
+        )
+        lines.append(
+            f"總 Token：{combined:,}" if combined is not None else "總 Token：—"
+        )
+        ratio = usage.get("cache_percent")
+        lines.append(
+            f"加權快取比例：{ratio:.2f}%" if ratio is not None else "加權快取比例：—"
+        )
+        lines.extend(["", "每日趨勢（輸入／輸出／快取輸入／請求數）"])
+        for bucket in usage["buckets"]:
+            values = []
+            for key in (
+                "input_tokens",
+                "output_tokens",
+                "input_cached_tokens",
+                "num_model_requests",
+            ):
+                entries = [row.get(key) for row in bucket["results"]]
+                value = (
+                    sum(entries)
+                    if all(entry is not None for entry in entries)
+                    else None
+                )
+                values.append(f"{value:,}" if value is not None else "—")
+            day = datetime.fromtimestamp(bucket["start_time"], timezone.utc).strftime(
+                "%Y-%m-%d"
+            )
+            lines.append(f"{day}：{'／'.join(values)}")
+    lines.extend(["", "本月成本（USD；所有成本項目，並非帳戶餘額）"])
+    if "error" in costs:
+        lines.append(f"成本載入失敗：{costs['error']}")
+        amount = None
+    else:
+        amount = costs["totals"].get("amount_usd")
+        lines.append(
+            f"本月累計：${amount:,.6f}" if amount is not None else "本月累計：—"
+        )
+        for bucket in costs["buckets"]:
+            entries = [row.get("amount", {}).get("value") for row in bucket["results"]]
+            value = (
+                sum((Decimal(str(entry)) for entry in entries), Decimal(0))
+                if all(entry is not None for entry in entries)
+                else None
+            )
+            day = datetime.fromtimestamp(bucket["start_time"], timezone.utc).strftime(
+                "%Y-%m-%d"
+            )
+            lines.append(f"{day}：${value:,.6f}" if value is not None else f"{day}：—")
+    budget = report["settings"].get("monthly_usd_cents")
+    lines.append(
+        f"本機每月參考預算：${budget / 100:,.2f}"
+        if budget
+        else "本機每月參考預算：未設定"
+    )
+    if budget and amount is not None:
+        lines.append(f"參考預算使用比例：{amount / (budget / 100) * 100:.2f}%")
+    projects = report["projects"]
+    lines.extend(["", "專案清單（含已封存專案）"])
+    if "error" in projects:
+        lines.append(f"專案載入失敗：{projects['error']}")
+    else:
+        lines.append(f"共 {len(projects['data'])} 個專案")
+        for project in projects["data"]:
+            name = project["name"].replace("\r", " ").replace("\n", " ") or "未命名"
+            lines.append(
+                f"{name} · {project['id']}"
+                + ("（已封存）" if project.get("status") == "archived" else "")
+            )
+    lines.extend(
+        ["", "— 表示資料不可用；成本及本機預算並非 OpenAI 帳戶餘額或伺服器額度。"]
+    )
+    messages, current = [], ""
+    for line in lines:
+        # Split unusually long project names as well as the overall report.
+        for offset in range(0, max(1, len(line)), 2999):
+            piece = line[offset : offset + 2999] + "\n"
+            if len(current) + len(piece) > 3000:
+                messages.append(current.rstrip())
+                current = ""
+            current += piece
+    if current:
+        messages.append(current.rstrip())
+    return messages
 
 
 def usage_csv(report: dict) -> bytes:

@@ -240,6 +240,21 @@ app.add_middleware(
 )
 
 
+@app.post("/offline/usage")
+async def offline_usage_command():
+    """Invoke the real command with a test-only message sink and fake HTTP.
+
+    Returns:
+        Captured text replies and the latest in-memory Dashboard report.
+    """
+    event = SimpleNamespace(plain_result=lambda text: text)
+    messages = [message async for message in app.state.plugin.usage_command(event)]
+    return {
+        "messages": messages,
+        "report": app.state.plugin.service.latest_command_dashboard,
+    }
+
+
 @app.get("/", response_class=HTMLResponse)
 async def host():
     """Serve an explicit test-only parent with the production iframe sandbox.

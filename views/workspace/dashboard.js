@@ -3,7 +3,7 @@
  * Created by EternityBoundary
  * All rights reserved.
  * SPDX-License-Identifier: GPL-3.0-only
- * 
+ *
  * File: dashboard.js
  * Project: AetherNexus for AstrBot
  */
@@ -100,6 +100,10 @@ export function chart(buckets, metrics, mini = false) {
 
 export function dashboardPage(app) {
   let revision = 0;
+  let syncTimer = null,
+    syncing = false,
+    commandRefresh = "",
+    displayedAt = "";
   const root = document.createElement("section"),
     range = utcRange();
   root.innerHTML = `<div class="page-header"><div><div class="eyebrow">YOUR WORKSPACE AT A GLANCE</div><h1>Dashboard</h1><p>每一份用量，都有跡可循。</p></div><span class="pill">UTC 時區</span></div>
@@ -121,6 +125,7 @@ export function dashboardPage(app) {
     '<p class="muted" id="activity-summary" style="font-size:11px"></p>',
   );
   const render = (result) => {
+    if (result?.refreshed_at) displayedAt = result.refreshed_at;
     const usage = result?.usage,
       costs = result?.costs,
       t = usage?.totals || {},
@@ -187,6 +192,24 @@ export function dashboardPage(app) {
     $(root, "#budget-note").textContent = budget
       ? `本機參考預算 $${number(budget / 100)} · ${c.amount_usd == null ? "成本未取得" : "已使用 " + ((c.amount_usd / (budget / 100)) * 100).toFixed(1) + "%"}。此值不會更改 OpenAI 額度。`
       : "成本取自 Costs API，並非帳戶餘額。";
+    if (Array.isArray(result?.projects?.data)) {
+      const selected = $(root, "#project").value;
+      const projects = result.projects.data;
+      $(root, "#project").innerHTML =
+        '<option value="">所有專案</option>' +
+        projects
+          .map(
+            (p) =>
+              `<option value="${escape(p.id)}">${escape(p.name || p.id)}${p.status === "archived" ? "（已封存）" : ""}</option>`,
+          )
+          .join("");
+      if (selected && !projects.some((p) => p.id === selected))
+        $(root, "#project").insertAdjacentHTML(
+          "beforeend",
+          `<option value="${escape(selected)}">${escape(selected)}（未列出）</option>`,
+        );
+      $(root, "#project").value = selected;
+    }
   };
   render();
   bind(root, "projects-load", async () => {
@@ -229,7 +252,7 @@ export function dashboardPage(app) {
     if (requestRevision !== revision) return;
     render(result);
     $(root, "#scope-note").textContent =
-      `已載入 ${$(root, "#project").selectedOptions[0]?.textContent} · ${$(root, "#start").value} 至 ${$(root, "#end").value}（UTC）。成本為本月累計。`;
+      `已載入 ${$(root, "#project").selectedOptions[0]?.textContent} · ${$(root, "#start").value} 至 ${$(root, "#end").value}（UTC）。成本為本月累計。${result.projects?.error ? " 專案清單載入失敗：" + result.projects.error : ""}`;
   });
   root
     .querySelectorAll("[data-go]")
@@ -240,7 +263,52 @@ export function dashboardPage(app) {
       render();
       $(root, "#scope-note").textContent = "範圍已變更，請按「載入用量」套用。";
     };
-  return { root };
+  const syncCommand = async () => {
+    if (syncing || !root.isConnected) return;
+    syncing = true;
+    const requestRevision = revision;
+    try {
+      // This reads an existing in-memory report; it never refreshes remote APIs.
+      const { report } = await action("dashboard.latest");
+      if (
+        !root.isConnected ||
+        requestRevision !== revision ||
+        !report ||
+        report.refreshed_at === commandRefresh
+      )
+        return;
+      commandRefresh = report.refreshed_at;
+      if (report.refreshed_at <= displayedAt) return;
+      const query = report.range;
+      if (
+        query.start !== $(root, "#start").value ||
+        query.end !== $(root, "#end").value ||
+        query.project !== $(root, "#project").value
+      ) {
+        $(root, "#scope-note").textContent =
+          "/用量 已重新整理所有專案近 7 天的資料；目前篩選範圍不同，請按「載入用量」取得目前範圍。";
+        return;
+      }
+      render(report);
+      $(root, "#scope-note").textContent =
+        `已載入 /用量 最新報告 · ${query.start} 至 ${query.end}（UTC）· ${report.refreshed_at}${report.projects?.error ? " 專案清單載入失敗：" + report.projects.error : ""}`;
+    } catch {
+      // A view reload can temporarily disconnect the local bridge.
+    } finally {
+      syncing = false;
+    }
+  };
+  return {
+    root,
+    enter() {
+      syncCommand();
+      syncTimer ??= setInterval(syncCommand, 5000);
+    },
+    leave() {
+      clearInterval(syncTimer);
+      syncTimer = null;
+    },
+  };
 }
 
 export function usagePage() {

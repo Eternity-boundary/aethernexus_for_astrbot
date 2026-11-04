@@ -1,12 +1,12 @@
 """AstrBot entry point and authenticated bridge handlers.
 
- Copyright (c) 2026 Skylight Software Organization.
- Created by EternityBoundary
- All rights reserved.
- SPDX-License-Identifier: GPL-3.0-only
+Copyright (c) 2026 Skylight Software Organization.
+Created by EternityBoundary
+All rights reserved.
+SPDX-License-Identifier: GPL-3.0-only
 
- File: main.py
- Project: AetherNexus for AstrBot
+File: main.py
+Project: AetherNexus for AstrBot
 """
 
 import asyncio
@@ -15,6 +15,7 @@ import os
 import re
 import time
 import uuid
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from astrbot.api import AstrBotConfig, logger
@@ -24,7 +25,7 @@ from astrbot.api.web import error_response, json_response, request, stream_respo
 from astrbot.core.utils.astrbot_path import get_astrbot_plugin_data_path
 
 from .client import ApiError, PlatformClient
-from .service import WorkspaceService, usage_csv
+from .service import WorkspaceService, dashboard_messages, usage_csv
 from .storage import LocalStore
 
 PLUGIN_NAME = "astrbot_plugin_aethernexus_for_astrbot"
@@ -420,6 +421,47 @@ class AetherNexusPlugin(Star):
             "請登入 AstrBot WebUI → 外掛 → AetherNexus → 可視化視圖 → AetherNexus 工作區。"
         )
 
+    @filter.command("用量")
+    async def usage_command(self, event: AstrMessageEvent):
+        """Refresh all Dashboard data and yield replies through AstrBot's pipeline.
+
+        Args:
+            event: The event owning the destination conversation.
+
+        Yields:
+            A disabled/missing-key hint, or freshly refreshed Dashboard messages.
+        """
+        try:
+            settings = await asyncio.to_thread(self.service.store.settings)
+            if not settings["usage_command_enabled"]:
+                yield event.plain_result(
+                    "「/用量」功能尚未開啟。請登入 AetherNexus 工作區 → Settings → 消息指令，開啟「啟用 /用量 指令」並儲存。"
+                )
+                return
+            if not self.credential("admin"):
+                yield event.plain_result(
+                    "尚未加入 Admin Key，無法重新整理組織用量。請登入 AetherNexus 工作區 → Settings → Credentials 加入 Admin Key，或在 AstrBot 伺服器設定對應的 Admin Key 環境變數。一般 API Key 無法替代 Admin Key。"
+                )
+                return
+            now = datetime.now(timezone.utc)
+            report = await self.service.dashboard(
+                {
+                    "start": (now - timedelta(days=6)).strftime("%Y-%m-%d"),
+                    "end": now.strftime("%Y-%m-%d"),
+                    "project": "",
+                }
+            )
+            self.service.latest_command_dashboard = report
+            for message in dashboard_messages(report):
+                yield event.plain_result(message)
+        except Exception as error:
+            logger.warning(
+                f"AetherNexus usage command failed ({type(error).__name__})."
+            )
+            yield event.plain_result(
+                "用量重新整理失敗，請檢查 Admin Key、API 權限與網路後再次執行 /用量。"
+            )
+
     async def terminate(self):
         """Cancel streams, close transports and drop session credentials."""
         tasks = [job["task"] for job in self.jobs.values()]
@@ -429,6 +471,8 @@ class AetherNexusPlugin(Star):
         self.jobs.clear()
         self.uploads.clear()
         self.secrets.clear()
+        if self.service is not None:
+            self.service.latest_command_dashboard = None
         await self.client.close()
         self.context.registered_web_apis[:] = [
             api

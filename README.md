@@ -17,12 +17,12 @@ WebUI 支援淺色、深色、跟隨 AstrBot 主題與窄螢幕導覽。一般�
 
 | 工作區 | 能做什麼 |
 | --- | --- |
-| **Dashboard** | UTC 日期與專案篩選、Token／請求數／加權快取比例、本月成本與趨勢圖，以及設定頁中的本機預算參考值。用量與成本分別處理錯誤。 |
+| **Dashboard** | UTC 日期與專案篩選、Token／請求數／加權快取比例、本月成本與趨勢圖，以及設定頁中的本機預算參考值。可啟用 `/用量`，重新整理全部資料後回覆原會話；各資料區塊分別處理錯誤。 |
 | **Playground** | Chat 多輪訊息、Responses SSE、停止等待、圖片／PDF 附件與 Python 範例；Images 生成／參考圖編輯；Audio Realtime、轉錄與相容模式；本機 Agent Builder 工作流程與 Video 分鏡／既有影片預覽。 |
 | **BUILD** | 本機 Prompt 版本與變數、Responses 測試、Stored Chat logs、已知 ID 的 Responses、Agent traces 與 OTLP span 階層、批次、微調及 Files／向量庫管理。 |
 | **遷移工作台** | Assistants 設定轉為本機 Prompt；Evals 既有結果唯讀檢視、匯出與本機 JSON 開啟。 |
 | **MANAGE** | Usage 分類／分組／趨勢與 CSV 匯出、Admin／專案 API keys 目錄、權杖簽發與撤銷、專案成員及模型速率限制。 |
-| **設定** | 跟隨 AstrBot／淺色／深色主題、一般 API Key／Admin Key 分槽設定，以及本機每月 USD 預算參考值。 |
+| **設定** | 跟隨 AstrBot／淺色／深色主題、一般 API Key／Admin Key 分槽設定、本機每月 USD 預算參考值，以及 `/用量` 指令開關。 |
 
 功能依公開 API、帳戶資格與權杖權限提供。BUILD／MANAGE 以操作表單與進階 JSON 提供服務；清單搜尋僅篩選已載入項目，「載入更多」逐頁取得資料。
 
@@ -59,7 +59,7 @@ AstrBot/
 
 **AstrBot WebUI → 外掛 → AetherNexus → 可視化視圖 → AetherNexus 工作區**
 
-聊天指令 `/aethernexus` 會回覆工作區入口說明。開啟工作區不會自動呼叫 OpenAI；模型清單、用量與遠端操作皆需明確點擊。
+聊天指令 `/aethernexus` 會回覆工作區入口說明。開啟工作區不會自動呼叫 OpenAI；遠端查詢與操作由明確點擊，或啟用後的 `/用量` 指令觸發。
 
 ### 3. 設定權杖
 
@@ -73,6 +73,18 @@ AstrBot/
 Admin Key 不替代一般模型權杖。外掛配置中的 `api_key_env`／`admin_key_env` 填寫的是**環境變數名稱**，不是權杖值；權杖值只在執行遠端操作時讀取。
 
 在 Settings 輸入的權杖僅保存於外掛程序記憶體，重載／卸載後清除，不回填、不寫入資料庫。清除槽會停用該程序對應槽的環境變數後備；選擇「使用環境變數」可恢復讀取伺服器環境。設定操作不會自動驗證權杖，也不會建立新 Key。
+
+### 4. 啟用 `/用量` 指令（選用）
+
+在 **Settings → 消息指令** 開啟「**啟用 /用量 指令**」，按「**儲存指令設定**」後立即生效。預設關閉；開關保存於本機資料庫，重載後保留。
+
+在 AstrBot 會話傳送 `/用量`，會重新取得 **所有專案近 7 天（含今日）的 UTC 用量、本月累計成本、每日趨勢、完整專案清單（含已封存）與本機預算參考值**，再透過 AstrBot 消息管線分段回覆，每段最多 3000 字元。每次執行均重新查詢，不以舊報告代替；各區塊若失敗會列出錯誤，其他成功資料仍可回覆。
+
+未加入 Admin Key 時，指令只回覆前往 **Settings → Credentials** 加入權杖的提示，不呼叫遠端 API。指令會回覆至發出指令的原會話，包含群組；啟用前請確認該會話適合顯示組織用量、成本與專案名稱。
+
+已開啟且篩選範圍相同的 Dashboard 會在 5 秒內同步最新報告；篩選不同時保留原範圍並顯示提示。同步只讀取伺服器記憶體中的指令報告，不額外呼叫 OpenAI；報告於外掛卸載／重載後清除。
+
+![消息指令設定（隔離測試宿主）](docs/assets/usage-command-settings.png)
 
 ## 遷移指南
 
@@ -132,7 +144,7 @@ scripts/                 打包工具
 docs/                    工作區指南與畫面
 ```
 
-後端依循 [AstrBot 外掛開發手冊](https://docs.astrbot.app/dev/star/plugin-new.html)：以 `Star` 載入，透過 `context.register_web_api()` 註冊操作，使用 `astrbot.api.web` 讀取請求與回傳結果。前端依循[可視化視圖手冊](https://docs.astrbot.app/dev/star/guides/plugin-pages.html)，使用 `window.AstrBotPluginView` 呼叫 API、上傳／下載及訂閱 SSE，靜態資源採相對路徑。
+後端依循 [AstrBot 外掛開發手冊](https://docs.astrbot.app/dev/star/plugin-new.html)：以 `Star` 載入，透過 `context.register_web_api()` 註冊操作，使用 `astrbot.api.web` 讀取請求與回傳結果。聊天指令依[消息事件手冊](https://docs.astrbot.app/dev/star/guides/listen-message-event.html)使用 `@filter.command("用量")`，依[消息發送手冊](https://docs.astrbot.app/dev/star/guides/send-message.html)透過 `yield event.plain_result(...)` 回覆。前端依循[可視化視圖手冊](https://docs.astrbot.app/dev/star/guides/plugin-pages.html)，使用 `window.AstrBotPluginView` 呼叫 API、上傳／下載及訂閱 SSE，靜態資源採相對路徑。
 
 在具有 AstrBot 依賴的開發環境，於**本外掛目錄**執行：
 
@@ -143,7 +155,7 @@ python -m ruff format .
 python -m ruff check .
 ```
 
-測試使用 `httpx.MockTransport`、虛擬 WebSocket、隔離資料庫與外連封鎖；不需要真實權杖，涵蓋實際 AstrBot 公開類別、請求／回應、metadata、視圖探索、初始化／卸載及 SSE 生命週期。
+測試使用 `httpx.MockTransport`、虛擬 WebSocket、隔離資料庫與外連封鎖；不需要真實權杖，涵蓋實際 AstrBot 公開類別、請求／回應、metadata、視圖探索、初始化／卸載及 SSE 生命週期，以及 `/用量` 的官方指令註冊、開關、缺少權杖、完整分頁、部分失敗與消息分段。
 
 瀏覽器測試使用獨立宿主，分兩個終端執行：
 
