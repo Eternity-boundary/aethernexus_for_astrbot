@@ -84,7 +84,6 @@ Admin Key 不替代一般模型權杖。外掛配置中的 `api_key_env`／`admi
 
 已開啟且篩選範圍相同的 Dashboard 會在 5 秒內同步最新報告；篩選不同時保留原範圍並顯示提示。同步只讀取伺服器記憶體中的指令報告，不額外呼叫 OpenAI；報告於外掛卸載／重載後清除。
 
-![消息指令設定（隔離測試宿主）](docs/assets/usage-command-settings.png)
 
 ## 遷移指南
 
@@ -114,7 +113,7 @@ Admin Key 不替代一般模型權杖。外掛配置中的 `api_key_env`／`admi
 | **錄音與播放** | 受限 iframe 不開放麥克風，以本機音檔上傳代替原生錄音。Realtime 音檔須為 24 kHz、單聲道、16-bit PCM WAV，最長 3 分鐘；回覆完成後播放，不提供連續收音或語音打斷。多輪歷史只保留已取得的文字。 |
 | **傳輸限制** | 檔案上傳與附件總量上限 25 MiB，下載／API 回應上限 40 MiB；圖片最多 16 張參考圖、10 張輸出。較大的 Files 請使用官方工具。 |
 | **文件與流程** | 本機 Prompt 支援最多 100 個 Prompt、各 100 個版本、整個版本庫內容上限 8 MiB。工作流程沿用 version-1 格式，最多 100 個節點、64 個執行步驟；Transform 僅代入 `{{input}}`，不執行自訂程式碼。 |
-| **語言** | 工作區內容使用繁體中文與原專案英文術語；視圖入口提供 zh-TW／zh-CN／en-US 中繼資料。 |
+| **語言** | 工作區內容使用繁體中文；視圖入口提供 zh-TW／zh-CN／en-US 中繼資料。 |
 
 ## 安全與資料
 
@@ -123,7 +122,7 @@ Admin Key 不替代一般模型權杖。外掛配置中的 `api_key_env`／`admi
 - 憑證與工作區由管理此 AstrBot 實例的 Dashboard 使用者共用，不提供獨立租戶隔離。
 - 正式傳輸固定使用官方 HTTPS／WSS 端點，保留 TLS 驗證，停用環境代理與重新導向；寫入操作不自動重送，不回傳私人錯誤本文。
 - 寫入前顯示內容並要求輸入目標 ID 或操作名稱。網路錯誤或停止等待不代表伺服器工作已取消，也不代表不會計費。
-- 偏好與 Prompt 版本保存於 AstrBot 資料目錄下的 `data/plugin_data/astrbot_plugin_aethernexus_for_astrbot/workspace.sqlite3`，與外掛程式碼分開。本機預算使用整數美分，只是參考值，不修改 OpenAI 額度或伺服器預算。
+- 偏好與 Prompt 版本保存於 AstrBot 資料目錄下的 `data/plugin_data/astrbot_plugin_aethernexus_for_astrbot/workspace.sqlite3`，與外掛程式碼分開。本機預算使用整數美分，只作爲參考值。
 - Prompt 為明文文件。對話、圖片、音訊、流程與分鏡不會自動持久化；處理過程可能留在瀏覽器或伺服器記憶體。Chat 預設 `store=false`，只有明確指定進階參數才改變；Prompt 測試固定 `store=false`。匯出文件可能包含私人輸入、附件與結果。
 
 ## 開發與測試
@@ -172,7 +171,7 @@ pnpm test:ui
 pnpm format:check
 ```
 
-隔離宿主使用**未修改的 AstrBot bridge SDK**與相同的受限 iframe，注入合成 API 資料；正式外掛沒有假資料模式或失敗後的假成功備援。截圖來自此宿主，不代表真實帳戶用量。離線測試通過不代表已完成真實帳戶或正式 AstrBot 部署驗收；本次移植未呼叫真實 OpenAI API。
+隔離宿主使用**未修改的 AstrBot bridge SDK**與相同的受限 iframe，注入合成 API 資料；正式外掛沒有假資料模式或失敗後的假成功備援。
 
 打包外掛：
 
