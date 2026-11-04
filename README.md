@@ -57,7 +57,7 @@ AstrBot/
 
 也可在 AstrBot 的外掛管理頁上傳已打包的 ZIP。安裝後重載外掛，再開啟：
 
-**AstrBot WebUI → 外掛 → AetherNexus → 可視化視圖 → AetherNexus 工作區**
+**AstrBot WebUI → 外掛 → AetherNexus → 可視化視圖 → AetherNexus**
 
 聊天指令 `/aethernexus` 會回覆工作區入口說明。開啟工作區不會自動呼叫 OpenAI；遠端查詢與操作由明確點擊，或啟用後的 `/用量` 指令觸發。
 
