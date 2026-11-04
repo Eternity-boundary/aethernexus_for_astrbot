@@ -1,0 +1,12 @@
+{
+  "metadata": {
+    "display_name": "AetherNexus",
+    "desc": "OpenAI Platform 工作区：用量、Playground、BUILD 和 MANAGE。"
+  },
+  "views": {
+    "workspace": {
+      "title": "AetherNexus 工作区",
+      "description": "Fluent 风格的 OpenAI Platform 管理工作区。"
+    }
+  }
+}

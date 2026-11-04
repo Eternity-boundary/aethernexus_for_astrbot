@@ -1,0 +1,14 @@
+{
+  "name": "aethernexus-for-astrbot-ui",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "format": "prettier --write views/workspace tests/ui.smoke.cjs",
+    "format:check": "prettier --check views/workspace tests/ui.smoke.cjs",
+    "test:ui": "node tests/ui.smoke.cjs"
+  },
+  "devDependencies": {
+    "playwright": "1.62.1",
+    "prettier": "3.9.10"
+  }
+}

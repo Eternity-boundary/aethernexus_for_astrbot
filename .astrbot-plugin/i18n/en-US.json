@@ -1,0 +1,12 @@
+{
+  "metadata": {
+    "display_name": "AetherNexus",
+    "desc": "OpenAI workspace with usage, Playground, BUILD and MANAGE tools."
+  },
+  "views": {
+    "workspace": {
+      "title": "AetherNexus workspace",
+      "description": "A Fluent-inspired OpenAI Platform management workspace."
+    }
+  }
+}

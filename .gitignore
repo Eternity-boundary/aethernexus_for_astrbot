@@ -201,6 +201,11 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 
+# Local development dependencies and browser artifacts
+.dev-tools/
+test-results/
+.env.local
+
 # Marimo
 marimo/_static/
 marimo/_lsp/

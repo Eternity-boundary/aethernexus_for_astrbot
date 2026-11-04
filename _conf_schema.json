@@ -1,0 +1,14 @@
+{
+  "api_key_env": {
+    "description": "一般 API Key 的伺服器環境變數名稱",
+    "type": "string",
+    "default": "OPENAI_API_KEY",
+    "hint": "填寫變數名稱而非金鑰。只在明確發起 API 操作時讀取。"
+  },
+  "admin_key_env": {
+    "description": "Admin Key 的伺服器環境變數名稱",
+    "type": "string",
+    "default": "OPENAI_ADMIN_KEY",
+    "hint": "Admin Key 僅用於組織用量與管理，與一般 API Key 分離。"
+  }
+}
