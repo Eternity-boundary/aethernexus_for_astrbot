@@ -16,7 +16,12 @@ const path = require("node:path");
     viewport: { width: 1440, height: 1080 },
   });
   const errors = [];
+  const apiRequests = [];
   page.on("pageerror", (error) => errors.push(error.message));
+  page.on("request", (request) => {
+    if (new URL(request.url()).pathname.startsWith("/api/"))
+      apiRequests.push(request.url());
+  });
   await page.route("**/*", (route) =>
     new URL(route.request().url()).hostname === "127.0.0.1"
       ? route.continue()
@@ -67,6 +72,137 @@ const path = require("node:path");
       await frame.locator(`[data-nav="${id}"]`).click();
       assert.ok(await frame.locator("#content h1").textContent(), id);
     }
+    const migrationPages = [
+      [
+        "prompts",
+        "Prompts 遷移指南",
+        "2026-11-30",
+        "https://developers.openai.com/api/docs/guides/prompting/migrate-from-prompt-object",
+      ],
+      [
+        "assistants",
+        "Assistants 遷移指南",
+        "2026-08-26",
+        "https://developers.openai.com/api/docs/assistants/migration",
+      ],
+      [
+        "evaluations",
+        "Evaluations 遷移指南",
+        "2026-11-30",
+        "https://developers.openai.com/cookbook/examples/evaluation/moving-from-openai-evals-to-promptfoo",
+      ],
+      [
+        "fine-tuning",
+        "Fine-tuning 遷移指南",
+        "2027-01-06",
+        "https://developers.openai.com/api/docs/deprecations",
+      ],
+      [
+        "agent-builder",
+        "Agent Builder 遷移指南",
+        "2026-11-30",
+        "https://developers.openai.com/api/docs/guides/agent-builder/migrate-from-agent-builder",
+      ],
+      [
+        "audio",
+        "Audio 相容模式遷移指南",
+        "部分舊音訊",
+        "https://developers.openai.com/api/docs/deprecations",
+      ],
+      [
+        "video",
+        "Video 遷移指南",
+        "2026-09-24",
+        "https://developers.openai.com/api/docs/deprecations",
+      ],
+      [
+        "images",
+        "Images 模型遷移指南",
+        "部分舊模型",
+        "https://developers.openai.com/api/docs/deprecations",
+      ],
+      [
+        "chat",
+        "Chat 模型遷移指南",
+        "部分舊模型",
+        "https://developers.openai.com/api/docs/deprecations",
+      ],
+    ];
+    for (const [id, title, status, url] of migrationPages) {
+      await frame.locator(`[data-nav="${id}"]`).click();
+      const guideButton = frame.locator(
+        `.page-header + [data-migration-page="${id}"] button`,
+      );
+      assert.ok((await guideButton.textContent()).includes(status));
+      if (id === "chat") await frame.locator("#message").fill("未送出的草稿");
+      const stateBefore = await frame
+        .locator("#content")
+        .evaluate((root) =>
+          [...root.querySelectorAll("input, textarea, select")].map(
+            (el) => el.value,
+          ),
+        );
+      const requestsBefore = apiRequests.length;
+      await guideButton.click();
+      const dialog = frame.locator("#migration-guide");
+      await dialog.waitFor();
+      assert.equal(await dialog.locator("h2").textContent(), title);
+      assert.equal(await dialog.locator("ol li").count(), 3);
+      assert.ok((await dialog.textContent()).includes("2026-11-05"));
+      assert.ok(
+        (await dialog.textContent()).includes("開啟指南不會傳送資料或變更設定"),
+      );
+      assert.equal(await dialog.locator("a").getAttribute("href"), url);
+      if (id === "agent-builder")
+        await page.screenshot({
+          path: path.join(output, "agent-builder-migration-light.png"),
+          animations: "disabled",
+        });
+      if (id === "chat") await dialog.press("Escape");
+      else
+        await dialog.getByRole("button", { name: "關閉", exact: true }).click();
+      await dialog.waitFor({ state: "detached" });
+      assert.equal(
+        apiRequests.length,
+        requestsBefore,
+        `${id}: opening and closing a guide must not call backend APIs`,
+      );
+      const stateAfter = await frame
+        .locator("#content")
+        .evaluate((root) =>
+          [...root.querySelectorAll("input, textarea, select")].map(
+            (el) => el.value,
+          ),
+        );
+      assert.deepEqual(
+        stateAfter,
+        stateBefore,
+        `${id}: guide must preserve the current draft`,
+      );
+    }
+    await frame.locator('[data-nav="audio"]').click();
+    await frame.locator("#mode").selectOption("speech");
+    assert.ok(
+      (
+        await frame.locator("#audio-compatibility-notice").textContent()
+      ).includes("2027-01-06"),
+    );
+    await frame.locator("#mode").selectOption("translation");
+    assert.ok(
+      (
+        await frame.locator("#audio-compatibility-notice").textContent()
+      ).includes("2027-02-26"),
+    );
+    assert.ok(
+      (
+        await frame.locator("#audio-compatibility-notice").textContent()
+      ).includes("輸出為英文"),
+    );
+    await frame.locator("#mode").selectOption("realtime");
+    assert.equal(
+      await frame.locator("#audio-compatibility-notice").isVisible(),
+      false,
+    );
     await frame.locator('[data-nav="traces"]').click();
     await frame.locator('[data-action="traces.session"]').click();
     await frame.locator("#id").fill("session_offline");
@@ -80,6 +216,16 @@ const path = require("node:path");
     await frame.locator("#theme").selectOption("dark");
     await frame.locator("#save").click();
     await frame.locator('html[data-theme="dark"]').waitFor();
+    await frame.locator('[data-nav="audio"]').click();
+    await frame.locator('[data-migration-page="audio"] button').click();
+    await page.screenshot({
+      path: path.join(output, "audio-migration-dark.png"),
+      animations: "disabled",
+    });
+    await frame
+      .locator("#migration-guide")
+      .getByRole("button", { name: "關閉", exact: true })
+      .click();
     await frame.locator('[data-nav="dashboard"]').click();
     await page.screenshot({
       path: path.join(output, "dashboard-dark.png"),
@@ -160,9 +306,24 @@ const path = require("node:path");
       .locator("html")
       .evaluate((el) => el.scrollWidth > el.clientWidth + 1);
     assert.equal(overflow, false, "Mobile view must not overflow horizontally");
+    await frame.locator("#mobile-menu").click();
+    await frame.locator('[data-nav="chat"]').click();
+    await frame.locator('[data-migration-page="chat"] button').click();
+    await page.screenshot({
+      path: path.join(output, "chat-migration-mobile.png"),
+      animations: "disabled",
+    });
+    const dialogBounds = await frame.locator("#migration-guide").boundingBox();
+    assert.ok(
+      dialogBounds.x >= 0 && dialogBounds.x + dialogBounds.width <= 390,
+    );
+    await frame
+      .locator("#migration-guide")
+      .getByRole("button", { name: "關閉", exact: true })
+      .click();
     assert.deepEqual(errors, [], "Browser must not produce page errors");
     console.log(
-      "Passed: 17 workspace routes, real sandbox/bridge, dashboard themes, chat streaming/stop, prompt revisions, workflow, image preview, upload, mutation confirmation, mobile layout.",
+      "Passed: 17 workspace routes, 9 local migration guides with no API calls or draft changes, audio deprecation notices, light/dark/mobile dialogs, real sandbox/bridge, streaming/stop, revisions, workflow, images, upload and mutation confirmation.",
     );
   } finally {
     await browser.close();

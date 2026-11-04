@@ -3,7 +3,7 @@
  * Created by EternityBoundary
  * All rights reserved.
  * SPDX-License-Identifier: GPL-3.0-only
- * 
+ *
  * File: app.js
  * Project: AetherNexus for AstrBot
  */
@@ -16,6 +16,7 @@ import { libraryPage } from "./library.js";
 import { resourcePage } from "./resources.js";
 import { workflowPage, videoPage } from "./builders.js";
 import { settingsPage } from "./settings.js";
+import { attachMigrationGuide } from "./migration.js";
 
 const groups = [
   ["", ["dashboard"]],
@@ -100,6 +101,7 @@ function navigate(id) {
       settings: () => settingsPage(app),
     };
     cache.set(id, factories[id] ? factories[id]() : resourcePage(app, id));
+    attachMigrationGuide(cache.get(id).root, id);
   }
   current = cache.get(id);
   document.getElementById("content").replaceChildren(current.root);

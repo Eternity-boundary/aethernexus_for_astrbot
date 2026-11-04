@@ -76,7 +76,9 @@ Admin Key 不替代一般模型權杖。外掛配置中的 `api_key_env`／`admi
 
 ## 遷移指南
 
-外掛保留原專案的本機遷移與資料保存流程。下表列出目前實作採用的政策與操作方式；涉及停用的入口提供說明或官方文件連結，不會自動遷移帳戶資料。
+外掛保留 WinUI 3 版各頁的遷移指南與棄用提示：**Prompts、Assistants、Evaluations、Fine-tuning、Agent Builder、Audio、Video、Images、Chat** 共 9 頁，均在**標題下方**提供「遷移指南 · 狀態／日期」按鈕及影響說明。
+
+按下按鈕可在本機對話框閱讀影響範圍、原版三個遷移步驟、文件核對日期（2026-11-05）及各頁對應的官方文件連結。開啟／關閉指南不會讀取權杖、發起 API 呼叫、上傳資料或改變草稿與設定；模型測試需另行明確執行。Audio 切換到 Speech 或英文翻譯時，也會保留該模式的棄用提示。
 
 | 頁面 | 需要留意的變動 |
 | --- | --- |
@@ -87,6 +89,7 @@ Admin Key 不替代一般模型權杖。外掛配置中的 `api_key_env`／`admi
 | **Assistants** | 不呼叫舊 Assistants API；匯入既有 Assistant JSON 的名稱、模型與 instructions，轉為本機 Prompt。工具、工具資源及歷史對話不會自動遷移。 |
 | **Video** | 不呼叫 Videos API；提供本機分鏡 JSON 與既有影片預覽。 |
 | **Audio** | Realtime 為逐次送出、完成後播放；Speech 相容模式於 2027-01-06 起停止，舊英文翻譯於 2027-02-26 起停止。 |
+| **Chat／Images** | 頁面本身保留；部分舊模型將停用，須以完整模型 ID 核對官方清單，並比較替代模型的參數、輸入格式、輸出與成本。 |
 
 時程變動請以 [OpenAI 停用公告](https://developers.openai.com/api/docs/deprecations) 為準。維護相關功能時，需同步核對程式中的日期限制與頁面說明。
 
@@ -179,4 +182,4 @@ python scripts/package_plugin.py
 
 ## 授權與來源
 
-本專案採 **GNU GPL v3**，完整條款見 [LICENSE.txt](LICENSE.txt)；新增程式碼標示 `GPL-3.0-only`。AetherNexus 為獨立開發的用戶端，並非 OpenAI 官方產品。
+本專案採 **GNU GPL v3**，完整條款見 [LICENSE.txt](LICENSE)；新增程式碼標示 `GPL-3.0-only`。AetherNexus 為獨立開發的用戶端，並非 OpenAI 官方產品。

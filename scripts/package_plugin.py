@@ -4,7 +4,7 @@
  Created by EternityBoundary
  All rights reserved.
  SPDX-License-Identifier: GPL-3.0-only
- 
+
  File: package_plugin.py
  Project: AetherNexus for AstrBot
 """

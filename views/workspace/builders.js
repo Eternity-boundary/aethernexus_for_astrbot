@@ -3,7 +3,7 @@
  * Created by EternityBoundary
  * All rights reserved.
  * SPDX-License-Identifier: GPL-3.0-only
- * 
+ *
  * File: builders.js
  * Project: AetherNexus for AstrBot
  */
@@ -257,7 +257,7 @@ export function workflowPage() {
 export function videoPage() {
   const root = document.createElement("section");
   let videoUrl = "";
-  root.innerHTML = `<div class="page-header"><div><div class="eyebrow">PLAYGROUND / STORYBOARD</div><h1>Video</h1><p>保留你的分鏡，繼續下一段創作。</p></div>${button("export", "匯出分鏡", "download")}</div><div class="notice warning">Videos API 已停用。本頁只提供本機分鏡與既有影片預覽，不發起影片生成。 <a href="https://developers.openai.com/api/docs/deprecations" target="_blank" rel="noopener noreferrer">遷移指南 ↗</a></div><div class="grid2"><div class="card stack"><h2>Storyboard</h2>${field("分鏡 JSON", area("board", pretty({ version: 1, shots: [{ prompt: "", seconds: 5 }] }), 14))}${button("add", "加入分鏡", "plus")}${field("匯入分鏡", '<input id="import" type="file" accept=".json">')}</div><div class="card stack"><h2>本機影片預覽</h2>${field("選擇既有影片", '<input id="video" type="file" accept="video/*">')}<video id="player" controls></video><small>影片只在瀏覽器預覽，不會上傳到伺服器。</small></div></div>`;
+  root.innerHTML = `<div class="page-header"><div><div class="eyebrow">PLAYGROUND / STORYBOARD</div><h1>Video</h1><p>保留你的分鏡，繼續下一段創作。</p></div>${button("export", "匯出分鏡", "download")}</div><div class="notice warning">Videos API 已停用。本頁只提供本機分鏡與既有影片預覽，不發起影片生成。 <a href="https://developers.openai.com/api/docs/deprecations" target="_blank" rel="noopener noreferrer">官方停用公告 ↗</a></div><div class="grid2"><div class="card stack"><h2>Storyboard</h2>${field("分鏡 JSON", area("board", pretty({ version: 1, shots: [{ prompt: "", seconds: 5 }] }), 14))}${button("add", "加入分鏡", "plus")}${field("匯入分鏡", '<input id="import" type="file" accept=".json">')}</div><div class="card stack"><h2>本機影片預覽</h2>${field("選擇既有影片", '<input id="video" type="file" accept="video/*">')}<video id="player" controls></video><small>影片只在瀏覽器預覽，不會上傳到伺服器。</small></div></div>`;
   bind(root, "add", () => {
     const board = jsonObject(root, "board");
     if (!Array.isArray(board.shots)) throw new Error("需要 shots 陣列");

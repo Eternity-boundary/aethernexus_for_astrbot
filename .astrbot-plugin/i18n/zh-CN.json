@@ -1,7 +1,7 @@
 {
   "metadata": {
     "display_name": "AetherNexus",
-    "desc": "OpenAI Platform 工作区：用量、Playground、BUILD 和 MANAGE。"
+    "desc": "OpenAI Platform 工作区：用量、Playground、BUILD 和 MANAGE。讓你在不離開AstrBot的情況下也能夠存取OpenAI platform的各種功能。"
   },
   "views": {
     "workspace": {

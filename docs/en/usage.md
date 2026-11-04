@@ -24,6 +24,12 @@ Runtime assets need no frontend build, CDN or Windows runtime. All authenticated
 
 Differences from the desktop version: the restricted iframe does not permit microphone capture; upload audio instead. Realtime playback starts after completion, and uploaded-audio history retains available text only. Uploads/attachments are limited to 25 MiB; responses/downloads to 40 MiB. Management uses inspectable forms and JSON rather than duplicating every native dialog. API retirement gates match the source application; see the [official deprecation page](https://developers.openai.com/api/docs/deprecations).
 
+## Per-page migration guides
+
+The original WinUI guides are preserved on nine pages: Prompts, Assistants, Evaluations, Fine-tuning, Agent Builder, Audio, Video, Images and Chat. Below each page title, a visible migration button shows its status/date and impact. The local dialog contains the original three steps, the documentation review date (2026-11-05), and the page-specific official migration link. Closing it or pressing Escape returns to the current draft. Opening/closing the guide does not read credentials, call backend APIs, upload data or change settings.
+
+Prompts links to migration from prompt objects; Evaluations to Evals → Promptfoo; Agent Builder and Assistants to their dedicated migration documents. Other guides link to the deprecation page. Audio also preserves the mode-specific Speech (2027-01-06) and English translation (2027-02-26) notices. Existing backend retirement gates continue to apply.
+
 ## Screenshots and testing
 
 These screenshots use synthetic data from the isolated test host, not real account usage.
@@ -34,8 +40,14 @@ These screenshots use synthetic data from the isolated test host, not real accou
 
 ![Mobile Dashboard](../assets/dashboard-mobile.png)
 
+![Agent Builder migration guide, light](../assets/agent-builder-migration-light.png)
+
+![Audio migration guide, dark](../assets/audio-migration-dark.png)
+
+![Chat migration guide, mobile](../assets/chat-migration-mobile.png)
+
 From the plugin directory, install `requirements-dev.txt` into an AstrBot development environment and run `python -m pytest -q`, `python -m ruff format .`, and `python -m ruff check .`. Tests block external connections and inject HTTP/WebSocket substitutes. They also instantiate the plugin using actual AstrBot public types and exercise request binding, lifecycle, uploads and SSE ownership.
 
-For browser checks, run `python tests/ui_harness.py` in one terminal; run `pnpm install`, `pnpm exec playwright install chromium --only-shell`, and `pnpm test:ui` in another. The loopback-only harness uses the **unmodified AstrBot bridge SDK** inside the production-equivalent restricted iframe. No real keys or paid requests are needed. Real account access and a full production AstrBot reload were not validated.
+For browser checks, run `python tests/ui_harness.py` in one terminal; run `pnpm install`, `pnpm exec playwright install chromium --only-shell`, and `pnpm test:ui` in another. The loopback-only harness uses the **unmodified AstrBot bridge SDK** inside the production-equivalent restricted iframe. Checks include all nine migration dialogs, their three steps and official links, close/Escape behavior, unchanged drafts, no backend calls, audio notices, and light/dark/mobile layouts. No real keys or paid requests are needed. Real account access and a full production AstrBot reload were not validated.
 
 Build an installable archive with `python scripts/package_plugin.py`. See the [README](../../README.md) for feature coverage and [LICENSE](../../LICENSE) for GPL-3.0-only terms and original attribution.

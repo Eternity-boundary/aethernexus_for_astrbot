@@ -210,3 +210,6 @@ test-results/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+docs/assets/agent-builder-migration-light.png
+docs/assets/audio-migration-dark.png
+docs/assets/chat-migration-mobile.png

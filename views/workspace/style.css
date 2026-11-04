@@ -561,6 +561,51 @@ textarea::placeholder {
   background: color-mix(in srgb, var(--orange) 7%, var(--surface));
   border-color: color-mix(in srgb, var(--orange) 18%, var(--line));
 }
+.migration-callout {
+  margin: -5px 0 20px;
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--line));
+  border-radius: 10px;
+  background: var(--soft);
+}
+.migration-callout .migration-button {
+  justify-content: flex-start;
+  white-space: normal;
+  text-align: left;
+  font-weight: 600;
+  padding: 6px 0;
+}
+.migration-callout p {
+  font-size: 12px;
+  margin: 7px 0 0;
+}
+.migration-status {
+  color: var(--accent);
+  font-weight: 600;
+}
+.migration-steps {
+  padding-left: 22px;
+  margin: 20px 0;
+}
+.migration-steps li {
+  margin: 0 0 14px;
+  padding-left: 4px;
+}
+.migration-footnote {
+  font-size: 11px;
+}
+#migration-guide[open] {
+  display: flex;
+  flex-direction: column;
+}
+#migration-guide .dialog-body {
+  overflow-y: auto;
+  min-height: 0;
+}
+#migration-guide h2,
+#migration-guide .dialog-actions {
+  flex: none;
+}
 .empty {
   text-align: center;
   padding: 48px 20px;

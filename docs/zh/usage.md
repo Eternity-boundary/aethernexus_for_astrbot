@@ -24,6 +24,14 @@ BUILD／MANAGE 的進階 Query／Body 都使用 JSON。未支援的操作或任�
 
 上傳按鈕會先透過 bridge 建立兩分鐘有效、單次使用且綁定使用者的上傳票證，再傳送檔案，保留用途、模型與 Project ID。下載一律透過 bridge；流程與本機文件則由瀏覽器明確匯出。
 
+## 各頁遷移指南與棄用提示
+
+Prompts、Assistants、Evaluations、Fine-tuning、Agent Builder、Audio、Video、Images、Chat 共 9 頁，沿用 WinUI 3 版指南。頁面標題下方會直接顯示狀態／日期與影響範圍；點擊「遷移指南」可在本機對話框閱讀三個步驟、文件核對日期（2026-11-05）及各頁對應的官方文件連結。
+
+Prompts 連至雲端 Prompt 物件遷移文件，Evaluations 連至 Evals → Promptfoo，Agent Builder 連至其官方遷移文件，Assistants 連至 Responses／Conversations 遷移文件；其餘頁面連至官方停用公告。開啟指南不會讀取權杖、呼叫 API、自動遷移或改變未儲存的草稿。按「關閉」或 Escape 可返回原頁面。
+
+Audio 選擇 Speech 時，提示 `audio/speech` 與相關模型預定於 2027-01-06 停用；選擇英文翻譯時，提示 `audio/translations` 預定於 2027-02-26 停用、輸出為英文。切回 Realtime／一般轉錄後，該相容模式提示會收起。後端既有的停用日期限制仍會檢查遠端操作。
+
 ## 畫面
 
 以下為隔離測試宿主的合成資料，並非真實帳戶用量。
@@ -34,6 +42,12 @@ BUILD／MANAGE 的進階 Query／Body 都使用 JSON。未支援的操作或任�
 
 ![窄視窗 Dashboard](../assets/dashboard-mobile.png)
 
+![Agent Builder 遷移指南（淺色）](../assets/agent-builder-migration-light.png)
+
+![Audio 遷移指南（深色）](../assets/audio-migration-dark.png)
+
+![Chat 遷移指南（窄視窗）](../assets/chat-migration-mobile.png)
+
 ## 驗證範圍
 
-已以實際 AstrBot 公開 API 載入外掛並執行離線合約測試；瀏覽器測試使用官方 bridge 與相同 sandbox，驗證工作區導覽、主題、串流停止、Prompt 版本、流程、圖片預覽、上傳及寫入確認。沒有啟動使用者的正式 AstrBot 服務，也未讀取真實秘密或呼叫 OpenAI 服務。部署後仍需依帳戶權限、模型與反向代理設定驗收。
+已以實際 AstrBot 公開 API 載入外掛並執行離線合約測試；瀏覽器測試使用官方 bridge 與相同 sandbox，驗證工作區導覽、主題、串流停止、Prompt 版本、流程、圖片預覽、上傳及寫入確認，並檢查 9 頁指南的步驟、官方連結、關閉方式、草稿保留及不發起 API 呼叫。沒有啟動使用者的正式 AstrBot 服務，也未讀取真實秘密或呼叫 OpenAI 服務。部署後仍需依帳戶權限、模型與反向代理設定驗收。
