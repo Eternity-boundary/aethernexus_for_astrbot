@@ -191,6 +191,6 @@ python scripts/package_plugin.py
 | AstrBot 外掛開發 | [開發手冊](https://docs.astrbot.app/dev/star/plugin-new.html)／[可視化視圖](https://docs.astrbot.app/dev/star/guides/plugin-pages.html) |
 | WinUI 3 原專案 | [AetherNexus](https://github.com/Eternity-boundary/AetherNexus) |
 
-## 授權與來源
+## 授權
 
 本專案採 **GNU GPL v3**，完整條款見 [LICENSE.txt](LICENSE)；新增程式碼標示 `GPL-3.0-only`。AetherNexus 為獨立開發的用戶端，並非 OpenAI 官方產品。
