@@ -179,6 +179,4 @@ python scripts/package_plugin.py
 
 ## 授權與來源
 
-原作與移植：Copyright (c) 2026 Skylight Software Organization，Created by EternityBoundary。本專案沿用 **GNU GPL v3**，完整條款見 [LICENSE](LICENSE)；程式碼標示 `GPL-3.0-only`。
-
-功能、資料格式與邏輯源自 AetherNexus 的 PlatformApiClient、GenerationClient、BuildClient、ManagementClient、PromptStore、WorkflowService、BudgetService 及 WinUI 頁面；外掛以 Python／HTML／CSS／JavaScript 重新實作。AetherNexus 為獨立開發的用戶端，並非 OpenAI 官方產品。
+本專案採 **GNU GPL v3**，完整條款見 [LICENSE.txt](LICENSE.txt)；新增程式碼標示 `GPL-3.0-only`。AetherNexus 為獨立開發的用戶端，並非 OpenAI 官方產品。
