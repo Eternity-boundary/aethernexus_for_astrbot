@@ -5,7 +5,7 @@
   },
   "views": {
     "workspace": {
-      "title": "AetherNexus 工作區",
+      "title": "AetherNexus",
       "description": "Fluent 風格的 OpenAI Platform 管理工作區。"
     }
   }
